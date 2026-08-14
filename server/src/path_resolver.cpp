@@ -1,4 +1,5 @@
 #include "path_resolver.h"
+#include <system_error>
 
 namespace fs = std::filesystem;
 
@@ -17,57 +18,49 @@ int http_status_for(ResolveStatus status) {
 ResolveResult resolve_under_root(const fs::path& root, const std::string& request_path) {
     ResolveResult result;
 
-    // ------------------------------------------------------------------
-    // TODO 1. Отсечь пустой request_path.
-    //   Считаем, что пустая строка и "/" означают корень — это удобно клиенту.
-    //   Всё остальное пустое/мусорное -> ResolveStatus::InvalidRequest.
-    // ------------------------------------------------------------------
+    fs::path requested(request_path);
 
-    // ------------------------------------------------------------------
-    // TODO 2. Склеить root с request_path.
-    //   Осторожно: оператор fs::path::operator/ при АБСОЛЮТНОМ правом
-    //   операнде ОТБРАСЫВАЕТ левый. То есть  root / "/etc/passwd"  даст
-    //   "/etc/passwd", а не то, что ты ждёшь. Это дыра, а не мелочь.
-    //   Значит: сначала сделать request_path относительным (снять ведущие '/'),
-    //   и только потом склеивать.
-    // ------------------------------------------------------------------
+    if (requested.is_absolute()) {
+        requested = requested.relative_path();
+    }
+    
+    fs::path combined = root / requested;
 
-    // ------------------------------------------------------------------
-    // TODO 3. Нормализовать полученный путь.
-    //   fs::weakly_canonical() схлопывает "..", "." и разворачивает симлинки,
-    //   и, в отличие от fs::canonical(), не бросает исключение на
-    //   несуществующем пути. Не забудь про перегрузку с std::error_code —
-    //   бросающая версия в обработчике HTTP-запроса тебе не нужна.
-    // ------------------------------------------------------------------
 
-    // ------------------------------------------------------------------
-    // TODO 4. Главная проверка безопасности: убедиться, что результат
-    //   действительно лежит ВНУТРИ канонического root.
-    //
-    //   Наивное сравнение строк через rfind(root_str, 0) == 0 — ЛОВУШКА:
-    //   путь "/data-secret/x" пройдёт проверку на root "/data", потому что
-    //   строка совпадает по префиксу. Правильный способ — сравнивать
-    //   покомпонентно: пройтись итераторами по root и по кандидату и
-    //   проверить, что все компоненты root совпали.
-    //
-    //   Не прошло -> ResolveStatus::OutsideRoot.
-    //
-    //   Проверь это в конце дня руками:
-    //     curl -i "http://localhost:9001/list?path=../../etc"
-    //     curl -i "http://localhost:9001/list?path=/../../etc"
-    //   Оба должны дать 403, а не список /etc.
-    // ------------------------------------------------------------------
+    std::error_code ec;
 
-    // ------------------------------------------------------------------
-    // TODO 5. Проверить существование через fs::exists(..., ec).
-    //   Нет -> ResolveStatus::NotFound. Есть -> заполнить result.absolute
-    //   и выставить ResolveStatus::Ok.
-    // ------------------------------------------------------------------
+    fs::path canonical = fs::weakly_canonical(combined, ec);
 
-    (void)root;
-    (void)request_path;
-    result.status = ResolveStatus::InvalidRequest;
-    result.message = "path_resolver is not implemented yet";
+    if (ec) {
+        result.status = ResolveStatus::InvalidRequest;
+        result.message = "invalid path";
+        return result;
+    }
+
+    
+    auto rit = root.begin();
+    auto rend = root.end();
+    auto cit = canonical.begin();
+    auto cend = canonical.end();
+
+    for (; rit != rend; ++rit, ++cit) {
+        if (cit == cend || *cit != *rit) {
+            result.status = ResolveStatus::OutsideRoot;
+            result.message = "path is outside the served root";
+            return result;
+        }
+    }
+
+    if (!fs::exists(canonical, ec)) {
+        result.status = ResolveStatus::NotFound;
+        result.message = "path does not exist";
+        return result;
+    }
+   
+    result.absolute = canonical;
+    result.status = ResolveStatus::Ok;
+   
+
     return result;
 }
 
