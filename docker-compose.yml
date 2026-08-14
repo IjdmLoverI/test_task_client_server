@@ -1,0 +1,30 @@
+services:
+  server:
+    build:
+      context: ./server
+    image: file-browser-server
+    container_name: file-browser-server
+    ports:
+      - "9001:9001"
+    volumes:
+      # Дерево, которое сервер отдаёт наружу. ro — сервер только читает.
+      - ./sample-data:/data:ro
+    # Требование ТЗ: корневую директорию задаём параметром при запуске.
+    command: ["--root", "/data", "--port", "9001"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+    restart: unless-stopped
+
+  # TODO (воскресенье): сервис client.
+  #   build: ./client
+  #   depends_on:
+  #     server:
+  #       condition: service_healthy
+  #   environment:
+  #     - SERVER_URL=http://server:9001
+  #   stdin_open: true   # без этих двух флагов input() в контейнере работать не будет
+  #   tty: true

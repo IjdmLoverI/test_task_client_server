@@ -1,0 +1,19 @@
+# build artefacts
+build/
+cmake-build-*/
+*.o
+*.so
+*.a
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
