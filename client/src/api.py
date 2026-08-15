@@ -24,14 +24,20 @@ class FileBrowserClient:
 
         url = self.base_url + endpoint
 
-        try: 
+        try:
             resp = requests.get(url, params={"path": path}, timeout=self.timeout)
         except requests.RequestException as exc:
-            raise ApiError(f"сервер недоступен: {exc}") from exc           
+            # Только тип ошибки, без внутреннего трейса requests: пользователю
+            # CLI нужна одна внятная строка, подробности остаются в __cause__.
+            raise ApiError(f"cannot reach {self.base_url} ({type(exc).__name__})") from exc
 
         if resp.status_code != 200:
-            message = resp.json().get("error", f"HTTP {resp.status_code}")
+            try:
+                message = resp.json().get("error", f"HTTP {resp.status_code}")
+            except ValueError:
+                message = f"HTTP {resp.status_code}"
             raise ApiError(message)
+
         return resp.json()
 
     def list_dir(self, path: str) -> dict:
@@ -41,14 +47,20 @@ class FileBrowserClient:
         return self._get("/file", path)
 
     def wait_until_ready(self, attempts: int = 15, delay: float = 1.0) -> None:
+        # Короткий таймаут именно здесь: на этапе ожидания сервер либо
+        # отвечает почти мгновенно, либо не слушает вовсе, и длинный
+        # таймаут только растягивает каждую неудачную попытку.
+        probe_timeout = min(self.timeout, 1.0)
+
         for _ in range(attempts):
             try:
-                resp = requests.get(f"{self.base_url}/health", timeout=self.timeout)
+                resp = requests.get(f"{self.base_url}/health", timeout=probe_timeout)
                 if resp.status_code == 200:
                     return
             except requests.RequestException:
                 pass
 
             time.sleep(delay)
-        raise ApiError(f"сервер {self.base_url} не отвечает после {attempts} попыток")
+
+        raise ApiError(f"{self.base_url} did not respond after {attempts} attempts")
     

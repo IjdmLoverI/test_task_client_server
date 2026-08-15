@@ -36,17 +36,17 @@ class Browser:
             
 
     def render(self) -> None:
-        print(f"\nТекущий каталог: {self.path}")
+        print(f"\nCurrent directory: {self.path}")
 
-        print("\nКаталоги:")
+        print("\nDirectories:")
         if not self.dirs:
-            print("  (нет)")
+            print("  (none)")
         for i, name in enumerate(self.dirs, start=1):
             print(f"  {i}) {name}")
 
-        print("\nФайлы:")
+        print("\nFiles:")
         if not self.files:
-            print("  (нет)")
+            print("  (none)")
         for i, name in enumerate(self.files, start=1):
             print(f"  {i}) {name}")
 
@@ -54,7 +54,7 @@ class Browser:
 
     def enter_dir(self, number: int) -> None:
         if not (1 <= number <= len(self.dirs)):
-            print(f"Нет каталога с номером {number}")
+            print(f"No directory with number {number}")
             return
         name = self.dirs[number - 1]
         self.path = posixpath.join(self.path, name)
@@ -62,23 +62,23 @@ class Browser:
 
     def go_up(self) -> None:
         if self.path == "/":
-            print("Корневая папка")
+            print("Already at the root")
             return
         self.path = posixpath.dirname(self.path)
         self.refresh()
-        
+
     def show_file(self, number: int) -> None:
         if not (1 <= number <= len(self.files)):
-            print("Out of range")
+            print(f"No file with number {number}")
             return
-        name = self.files[number -1]
+        name = self.files[number - 1]
         full_path = posixpath.join(self.path, name)
         info = self.client.file_info(full_path)
-        print(f"\nФайл: {full_path}")
-        print(f"  размер: {human_size(info['size'])} ({info['size']} байт)")
-        print(f"  создан:   {info['created']}")
-        print(f"  изменён:  {info['modified']}")
-        print(f"  sha256:   {info['sha256']}")
+        print(f"\nFile: {full_path}")
+        print(f"  size:      {human_size(info['size'])} ({info['size']} bytes)")
+        print(f"  created:   {info['created']}")
+        print(f"  modified:  {info['modified']}")
+        print(f"  sha256:    {info['sha256']}")
 
 
     # ----------------------------------------------------------------------

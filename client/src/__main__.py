@@ -25,13 +25,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--url",
         default=os.environ.get("SERVER_URL", DEFAULT_URL),
-        help=f"адрес сервера (по умолчанию {DEFAULT_URL} или $SERVER_URL)",
+        help=f"server address (defaults to $SERVER_URL or {DEFAULT_URL})",
     )
     parser.add_argument(
         "--timeout",
         type=float,
         default=5.0,
-        help="таймаут запроса в секундах",
+        help="request timeout in seconds",
     )
     return parser.parse_args()
 
@@ -40,18 +40,18 @@ def main() -> int:
     args = parse_args()
     client = FileBrowserClient(args.url, timeout=args.timeout)
 
-    print(f"Подключение к {args.url} ...")
+    print(f"Connecting to {args.url} ...")
     try:
         client.wait_until_ready()
     except ApiError as exc:
-        print(f"Не удалось подключиться: {exc}", file=sys.stderr)
+        print(f"Could not connect: {exc}", file=sys.stderr)
         return 1
 
     browser = Browser(client)
     try:
         browser.refresh()
     except ApiError as exc:
-        print(f"Не удалось получить список файлов: {exc}", file=sys.stderr)
+        print(f"Could not list the root directory: {exc}", file=sys.stderr)
         return 1
 
     browser.run()
