@@ -1,2 +1,2 @@
-Это тестовое дерево, которое сервер отдаёт через API.
-Корень контейнера: /data
+Demo tree served through the API.
+Mounted inside the container as /data.

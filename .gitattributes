@@ -1,7 +1,7 @@
-# Ты работаешь на Windows, а собирается всё в Linux-контейнере.
-# Без этого git может положить в репозиторий CRLF, и тогда shell-скрипты
-# и entrypoint'ы ломаются внутри контейнера с невнятной ошибкой
-# "no such file or directory". Фиксируем LF для всего текстового.
+# Development happens on Windows while everything is built in Linux
+# containers. Without this git can store CRLF, which breaks shell scripts and
+# entrypoints inside the container with a confusing "no such file or
+# directory". Pin LF for all text files.
 * text=auto eol=lf
 *.png binary
 *.jpg binary

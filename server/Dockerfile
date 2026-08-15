@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /src
 
-# CMakeLists копируем отдельно от исходников: правка .cpp не сбрасывает
-# закешированный слой с FetchContent-зависимостями.
+# CMakeLists is copied separately from the sources, so editing a .cpp file
+# does not invalidate the cached layer holding the fetched dependencies.
 COPY CMakeLists.txt ./
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release || true
 

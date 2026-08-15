@@ -8,7 +8,7 @@ class Server;
 
 namespace fb {
 
-// Вешает все маршруты API на переданный сервер.
+// Registers every API route on the given server.
 void register_routes(httplib::Server& server, const std::filesystem::path& root);
 
 }  // namespace fb

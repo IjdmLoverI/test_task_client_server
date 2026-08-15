@@ -1,6 +1,6 @@
-"""Точка входа клиента.
+"""Client entry point.
 
-Запуск:
+Usage:
     python -m src --url http://localhost:9001
     SERVER_URL=http://server:9001 python -m src
 """
@@ -20,7 +20,7 @@ DEFAULT_URL = "http://localhost:9001"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="file-browser-client",
-        description="CLI-клиент для просмотра файлов на сервере.",
+        description="CLI client for browsing files on the server.",
     )
     parser.add_argument(
         "--url",

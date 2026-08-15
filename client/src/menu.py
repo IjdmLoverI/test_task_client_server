@@ -1,4 +1,4 @@
-"""Интерактивное меню навигации по дереву на сервере."""
+"""Interactive menu for browsing the tree exposed by the server."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from .api import ApiError, FileBrowserClient
 
 
 def human_size(num: int) -> str:
-    """1536 -> '1.5 KiB'. Косметика, но читать вывод сильно приятнее."""
+    """1536 -> '1.5 KiB'. Cosmetic, but it makes the output far easier to read."""
     size = float(num)
     for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
         if size < 1024 or unit == "TiB":

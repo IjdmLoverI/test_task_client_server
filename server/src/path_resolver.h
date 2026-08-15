@@ -7,23 +7,23 @@ namespace fb {
 
 enum class ResolveStatus {
     Ok,
-    InvalidRequest,  // параметр path отсутствует или некорректен -> 400
-    OutsideRoot,     // путь уводит за пределы корня            -> 403
-    NotFound,        // такого пути не существует               -> 404
+    InvalidRequest,  // path parameter missing or unusable  -> 400
+    OutsideRoot,     // path escapes the served root        -> 403
+    NotFound,        // path does not exist                 -> 404
 };
 
 struct ResolveResult {
     ResolveStatus status = ResolveStatus::InvalidRequest;
-    std::filesystem::path absolute;  // заполнено только при status == Ok
-    std::string message;             // текст ошибки для JSON-ответа
+    std::filesystem::path absolute;  // only set when status == Ok
+    std::string message;             // error text for the JSON response
 };
 
-// Превращает пришедший от клиента path (например "/docs/readme.txt")
-// в абсолютный путь внутри root, отказывая во всём, что выходит наружу.
+// Turns a client-supplied path (for example "/docs/readme.txt") into an
+// absolute path inside root, rejecting anything that points outside it.
 ResolveResult resolve_under_root(const std::filesystem::path& root,
                                  const std::string& request_path);
 
-// Отображение статуса на HTTP-код.
+// Maps a status onto its HTTP code.
 int http_status_for(ResolveStatus status);
 
 }  // namespace fb

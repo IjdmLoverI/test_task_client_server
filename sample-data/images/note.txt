@@ -1,1 +1,1 @@
-Заглушка вместо картинки — бинарь в git тащить незачем.
+Placeholder instead of an image: no reason to carry a binary in git.

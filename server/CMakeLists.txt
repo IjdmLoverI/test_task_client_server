@@ -11,7 +11,7 @@ endif()
 
 include(FetchContent)
 
-# Header-only HTTP-сервер. Тег зафиксирован намеренно: воспроизводимая сборка.
+# Header-only HTTP server. The tag is pinned deliberately, for reproducible builds.
 FetchContent_Declare(
   httplib
   GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
@@ -28,7 +28,8 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(httplib nlohmann_json)
 
-# SHA-256 берём из OpenSSL, а не пишем руками: меньше кода — меньше багов.
+# SHA-256 comes from OpenSSL rather than a hand-rolled implementation:
+# less code, fewer places to get it wrong.
 find_package(OpenSSL REQUIRED)
 
 add_executable(file_server

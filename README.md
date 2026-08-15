@@ -135,11 +135,11 @@ curl "http://localhost:9001/file?path=/docs/guide.md"
 
 ```json
 {
-  "created": "2026-08-14T14:38:20Z",
-  "modified": "2026-08-14T14:38:20Z",
+  "created": "2026-08-15T14:43:57Z",
+  "modified": "2026-08-15T14:43:57Z",
   "path": "/docs/guide.md",
-  "sha256": "da9b9a56808c93fb40465255d131c8ba7d1b1890b2fe441f5cf9b40aa6d96f66",
-  "size": 83
+  "sha256": "10121295e4282912a6b35658426766e07506c45333304b5a92ab31e1c2281189",
+  "size": 56
 }
 ```
 
@@ -211,10 +211,10 @@ Choosing `2` asks for a file number and prints its metadata:
 
 ```
 File: /docs/guide.md
-  size:      83 B (83 bytes)
-  created:   2026-08-14T14:38:20Z
-  modified:  2026-08-14T14:38:20Z
-  sha256:    da9b9a56808c93fb40465255d131c8ba7d1b1890b2fe441f5cf9b40aa6d96f66
+  size:      56 B (56 bytes)
+  created:   2026-08-15T14:43:57Z
+  modified:  2026-08-15T14:43:57Z
+  sha256:    10121295e4282912a6b35658426766e07506c45333304b5a92ab31e1c2281189
 ```
 
 Out-of-range numbers, non-numeric input, server errors and `Ctrl+C` are all

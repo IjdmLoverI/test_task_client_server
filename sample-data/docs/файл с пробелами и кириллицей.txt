@@ -1,2 +1,2 @@
-Namеренно нетривиальное имя: пробелы + UTF-8.
-Проверяет URL-кодирование параметра path и вывод в CLI-клиенте.
+The name is deliberately awkward: spaces plus non-ASCII characters.
+It exercises URL encoding of the path parameter and rendering in the CLI.

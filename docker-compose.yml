@@ -7,9 +7,9 @@ services:
     ports:
       - "9001:9001"
     volumes:
-      # Дерево, которое сервер отдаёт наружу. ro — сервер только читает.
+      # The tree the server exposes. Read-only: the server never writes.
       - ./sample-data:/data:ro
-    # Требование ТЗ: корневую директорию задаём параметром при запуске.
+    # The task requires the root directory to be given as a startup argument.
     command: ["--root", "/data", "--port", "9001"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:9001/health"]
@@ -29,8 +29,9 @@ services:
         condition: service_healthy
     environment:
       - SERVER_URL=http://server:9001
-    # Без этих двух флагов input() в контейнере получит EOF и меню упадёт.
-    # Запускать клиент нужно через `docker compose run --rm client`,
-    # а не `up`: только run подключает терминал по-настоящему.
+    # Without these two flags input() inside the container reads EOF and the
+    # menu exits immediately. Start the client with
+    # `docker compose run --rm client`, not `up`: only run attaches a real
+    # terminal.
     stdin_open: true
     tty: true

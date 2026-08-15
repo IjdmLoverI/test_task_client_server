@@ -1,7 +1,7 @@
-"""HTTP-клиент к серверу file browser.
+"""HTTP client for the file browser server.
 
-Единственный модуль, который знает про HTTP. Меню работает уже
-со словарями и ничего не знает ни про requests, ни про коды ответов.
+The only module aware of HTTP. The menu works with plain dictionaries and
+knows nothing about requests or status codes.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import requests
 
 
 class ApiError(Exception):
-    """Сервер недоступен или вернул ошибку."""
+    """The server is unreachable or answered with an error."""
 
 
 class FileBrowserClient:
@@ -27,8 +27,8 @@ class FileBrowserClient:
         try:
             resp = requests.get(url, params={"path": path}, timeout=self.timeout)
         except requests.RequestException as exc:
-            # Только тип ошибки, без внутреннего трейса requests: пользователю
-            # CLI нужна одна внятная строка, подробности остаются в __cause__.
+            # Only the exception type, not the full requests traceback: a CLI
+            # user needs one readable line, the details stay in __cause__.
             raise ApiError(f"cannot reach {self.base_url} ({type(exc).__name__})") from exc
 
         if resp.status_code != 200:
@@ -47,9 +47,9 @@ class FileBrowserClient:
         return self._get("/file", path)
 
     def wait_until_ready(self, attempts: int = 15, delay: float = 1.0) -> None:
-        # Короткий таймаут именно здесь: на этапе ожидания сервер либо
-        # отвечает почти мгновенно, либо не слушает вовсе, и длинный
-        # таймаут только растягивает каждую неудачную попытку.
+        # A short timeout specifically here: while waiting, the server either
+        # answers almost instantly or is not listening at all, so a long
+        # timeout only stretches out every failed attempt.
         probe_timeout = min(self.timeout, 1.0)
 
         for _ in range(attempts):

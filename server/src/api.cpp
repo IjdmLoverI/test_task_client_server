@@ -14,8 +14,8 @@ namespace {
 
 constexpr const char* kJsonMime = "application/json";
 
-// Единый формат ошибки для всего API. RESTful — это в том числе то, что
-// ошибка тоже JSON, а не кусок HTML или пустое тело.
+// One error shape for the whole API. Part of being RESTful is that failures
+// are JSON too, rather than a chunk of HTML or an empty body.
 void send_error(httplib::Response& res, int status, const std::string& message) {
     json body{
         {"error", message},
@@ -99,7 +99,7 @@ void handle_file(const fs::path& root, const httplib::Request& req, httplib::Res
 }  // namespace
 
 void register_routes(httplib::Server& server, const fs::path& root) {
-    // Не из ТЗ, но нужен для healthcheck в docker compose.
+    // Not part of the task; compose needs it to gate the client on readiness.
     server.Get("/health", [](const httplib::Request&, httplib::Response& res) {
         send_json(res, json{{"status", "ok"}});
     });
@@ -118,7 +118,8 @@ void register_routes(httplib::Server& server, const fs::path& root) {
         }
     });
 
-    // Любое исключение из обработчика -> 500 в JSON, а не разрыв соединения.
+    // Any exception escaping a handler becomes a JSON 500 rather than a
+    // dropped connection.
     server.set_exception_handler(
         [](const httplib::Request&, httplib::Response& res, std::exception_ptr ep) {
             std::string message = "internal error";

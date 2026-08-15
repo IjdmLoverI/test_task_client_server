@@ -1,3 +1,3 @@
 # Guide
 
-Обычный текстовый файл для проверки /file.
+An ordinary text file, used to exercise /file.

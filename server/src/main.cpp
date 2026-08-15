@@ -19,8 +19,8 @@ struct Options {
 void print_usage(const char* argv0) {
     std::cerr << "Usage: " << argv0 << " --root <directory> [--port <port>]\n"
               << "\n"
-              << "  --root  Директория, которая считается корнем для API (обязательный).\n"
-              << "  --port  TCP-порт (по умолчанию 9001).\n";
+              << "  --root  Directory to serve as the API root (required).\n"
+              << "  --port  TCP port (default 9001).\n";
 }
 
 bool parse_args(int argc, char** argv, Options& out) {
@@ -62,8 +62,8 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    // Корень нормализуем ОДИН раз на старте: дальше все проверки
-    // безопасности сравниваются именно с этим каноническим путём.
+    // Canonicalise the root once at startup: every later containment check
+    // compares against this canonical path.
     std::error_code ec;
     const fs::path root = fs::canonical(opts.root, ec);
     if (ec) {
@@ -81,7 +81,8 @@ int main(int argc, char** argv) {
 
     std::cout << "file_server: root=" << root.string() << " port=" << opts.port << std::endl;
 
-    // 0.0.0.0, а не 127.0.0.1 — иначе снаружи контейнера порт недоступен.
+    // 0.0.0.0 rather than 127.0.0.1: otherwise the port is unreachable from
+    // outside the container.
     if (!server.listen("0.0.0.0", opts.port)) {
         std::cerr << "Error: failed to bind 0.0.0.0:" << opts.port << "\n";
         return 1;

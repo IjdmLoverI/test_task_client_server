@@ -1,3 +1,3 @@
-# git не хранит пустые директории — этот файл нужен, чтобы empty-dir
-# доехала до репозитория. Она проверяет, что /list на пустой папке
-# отдаёт "entries": [], а не ошибку.
+# git does not track empty directories, so this file exists to get empty-dir
+# into the repository. It checks that /list on an otherwise empty directory
+# returns "entries": [] rather than an error.
