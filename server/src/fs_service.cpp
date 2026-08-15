@@ -2,119 +2,102 @@
 
 #include <openssl/evp.h>
 
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 namespace fs = std::filesystem;
 
 namespace fb {
 
 std::string to_iso8601_utc(std::time_t t) {
-    // ------------------------------------------------------------------
-    // TODO 6. Отформатировать время как "%Y-%m-%dT%H:%M:%SZ".
-    //   Используй gmtime_r (POSIX, потокобезопасен — сервер многопоточный,
-    //   обычный gmtime вернёт указатель на общий статический буфер) и
-    //   std::strftime. Формат ISO 8601 в UTC выбран сознательно: он
-    //   однозначен и не зависит от таймзоны контейнера.
-    // ------------------------------------------------------------------
-    (void)t;
-    return "";
+
+    struct tm tm_utc;
+    char buf[32];
+
+    gmtime_r(&t, &tm_utc);
+
+    std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm_utc);
+
+    return buf;
 }
 
 std::vector<DirEntry> list_directory(const fs::path& dir) {
     std::vector<DirEntry> entries;
+    std::error_code ec;
 
-    // ------------------------------------------------------------------
-    // TODO 7. Обойти директорию через fs::directory_iterator.
-    //   - name = it.path().filename().string()
-    //   - type = "dir" для директорий, "file" для всего остального
-    //   - используй перегрузки с std::error_code: битый симлинк внутри
-    //     каталога не должен ронять весь запрос
-    //   - is_directory() идёт ПО симлинку; если хочешь помечать симлинк на
-    //     папку как "dir" — так и оставь, но упомяни выбор в README
-    //   - отсортируй результат (директории первыми, потом по имени):
-    //     стабильный порядок = предсказуемый нумерованный список у клиента
-    // ------------------------------------------------------------------
-
-    (void)dir;
+    for (const fs::directory_entry& entry : fs::directory_iterator(dir, ec)) {
+        DirEntry item;
+        item.name = entry.path().filename().string();
+        item.type = entry.is_directory(ec) ? "dir" : "file";
+        entries.push_back(item);
+    }
+    std::sort(
+        entries.begin(), entries.end(), 
+        [](const DirEntry& a, const DirEntry& b) {
+            if (a.type != b.type) return a.type == "dir";
+            return a.name < b.name;
+        }
+    );
     return entries;
 }
 
 std::string sha256_file(const fs::path& file) {
-    // ------------------------------------------------------------------
-    // TODO 8. Посчитать SHA-256 ПОТОКОВО, а не загружая файл в память.
-    //   Скелет на OpenSSL EVP:
-    //
-    //     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-    //     EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
-    //     ... читать ifstream (обязательно std::ios::binary!) буфером по
-    //         64 КБ и звать EVP_DigestUpdate(ctx, buf, gcount) ...
-    //     EVP_DigestFinal_ex(ctx, md, &md_len);
-    //     EVP_MD_CTX_free(ctx);
-    //
-    //   Дальше md (32 байта) -> hex-строка нижним регистром через
-    //   std::ostringstream + std::hex + std::setw(2) + std::setfill('0').
-    //   Ловушка: без static_cast<unsigned> байт выведется как символ.
-    //
-    //   ctx освобождать на ВСЕХ путях выхода, включая ошибку чтения, —
-    //   проще всего обернуть в unique_ptr с кастомным делитером.
-    //
-    //   Проверить результат: sha256sum того же файла в контейнере должен
-    //   дать ту же строку.
-    // ------------------------------------------------------------------
-    (void)file;
-    return "";
+
+
+    std::ifstream in(file, std::ios::binary);
+    if (!in) return "";
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (ctx == nullptr) return "";
+    EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
+    
+    char buf[65536];
+
+    while(in.read(buf, sizeof(buf)) || in.gcount() > 0) {
+        EVP_DigestUpdate(ctx, buf, in.gcount());
+    }
+
+    std::ostringstream oss;
+    unsigned char md[EVP_MAX_MD_SIZE];
+    unsigned int md_len = 0;
+
+    EVP_DigestFinal_ex(ctx, md, &md_len);
+    EVP_MD_CTX_free(ctx);
+
+    for (unsigned int i = 0; i < md_len; ++i) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned>(md[i]);
+    }
+
+    return oss.str();
 }
 
 FileInfo describe_file(const fs::path& file) {
     FileInfo info;
 
-    // ------------------------------------------------------------------
-    // TODO 9. size — fs::file_size(file, ec).
-    // ------------------------------------------------------------------
 
-    // ------------------------------------------------------------------
-    // TODO 10. modified — самое простое из трёх времён.
-    //   fs::last_write_time даёт file_time_type, который до C++20 не
-    //   конвертируется в time_t переносимо. Не мучайся с этим: возьми
-    //   struct stat через ::stat() и используй st_mtime. Один системный
-    //   вызов закрывает и size, и modified.
-    // ------------------------------------------------------------------
+    struct stat st;
+    struct statx stx;
+    
+    if (::stat(file.c_str(), &st) != 0) return info;
 
-    // ------------------------------------------------------------------
-    // TODO 11. created — САМЫЙ КАВЕРЗНЫЙ ПУНКТ ВСЕГО ЗАДАНИЯ.
-    //
-    //   В POSIX нет времени создания. В struct stat есть st_atime (доступ),
-    //   st_mtime (изменение содержимого) и st_ctime (изменение inode) —
-    //   времени рождения там НЕТ. st_ctime это НЕ creation time, хотя все
-    //   так думают из-за буквы 'c'.
-    //
-    //   Настоящее время рождения даёт statx() с маской STATX_BTIME
-    //   (Linux 4.11+, <sys/stat.h> + <fcntl.h>). Но оно доступно не на всех
-    //   ФС, и — важно — в Docker поверх overlayfs может не вернуться.
-    //   Поэтому:
-    //
-    //     1) зовём statx(AT_FDCWD, path, 0, STATX_BTIME, &stx)
-    //     2) проверяем, что бит STATX_BTIME реально пришёл в stx.stx_mask
-    //        (вызов может УСПЕШНО вернуться, не заполнив btime — это и есть
-    //        главная ловушка)
-    //     3) если пришёл — используем stx.stx_btime.tv_sec
-    //     4) если нет — фолбэк на st_ctime
-    //
-    //   И обязательно напиши про этот фолбэк в README, в разделе
-    //   «Известные ограничения». Ревьюер почти наверняка проверит именно
-    //   это поле: молча подставить mtime под видом created — провал,
-    //   честно описанный фолбэк — плюс.
-    // ------------------------------------------------------------------
+    info.size = st.st_size;
+    info.modified = to_iso8601_utc(st.st_mtime);
+    
+    if (statx(AT_FDCWD, file.c_str(), 0, STATX_BTIME, &stx) == 0 && (stx.stx_mask & STATX_BTIME)) {
+        info.created = to_iso8601_utc(stx.stx_btime.tv_sec);
+    } else {
+        info.created = to_iso8601_utc(st.st_ctime);
+    }
+    
 
-    // ------------------------------------------------------------------
-    // TODO 12. sha256 — вызвать sha256_file(file).
-    // ------------------------------------------------------------------
+    info.sha256 = sha256_file(file);
 
-    (void)file;
     return info;
 }
 
