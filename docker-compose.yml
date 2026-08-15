@@ -19,12 +19,18 @@ services:
       start_period: 3s
     restart: unless-stopped
 
-  # TODO (воскресенье): сервис client.
-  #   build: ./client
-  #   depends_on:
-  #     server:
-  #       condition: service_healthy
-  #   environment:
-  #     - SERVER_URL=http://server:9001
-  #   stdin_open: true   # без этих двух флагов input() в контейнере работать не будет
-  #   tty: true
+  client:
+    build:
+      context: ./client
+    image: file-browser-client
+    container_name: file-browser-client
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      - SERVER_URL=http://server:9001
+    # Без этих двух флагов input() в контейнере получит EOF и меню упадёт.
+    # Запускать клиент нужно через `docker compose run --rm client`,
+    # а не `up`: только run подключает терминал по-настоящему.
+    stdin_open: true
+    tty: true

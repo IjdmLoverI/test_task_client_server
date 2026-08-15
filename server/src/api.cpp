@@ -31,64 +31,69 @@ void send_json(httplib::Response& res, const json& body, int status = 200) {
 }
 
 void handle_list(const fs::path& root, const httplib::Request& req, httplib::Response& res) {
-    // ------------------------------------------------------------------
-    // TODO 13. Достать параметр: req.has_param("path") / req.get_param_value("path").
-    //   Нет параметра -> 400 с внятным текстом.
-    //   Замечание по API-дизайну: реши, считать ли отсутствующий path
-    //   корнем — и опиши решение в README. Я бы отдавал 400: явное лучше
-    //   неявного, а клиент всё равно всегда шлёт path.
-    // ------------------------------------------------------------------
+    
+    if (!req.has_param("path")) {
+        send_error(res, 400, "missing required parameter: path");
+        return;
+    }
 
-    // ------------------------------------------------------------------
-    // TODO 14. Прогнать через resolve_under_root(). Не Ok ->
-    //   send_error(res, http_status_for(status), message).
-    // ------------------------------------------------------------------
+    const std::string requested = req.get_param_value("path");
 
-    // ------------------------------------------------------------------
-    // TODO 15. Убедиться, что это именно директория. Если файл — 400
-    //   ("not a directory"): просить список файлов у файла бессмысленно.
-    // ------------------------------------------------------------------
+    const ResolveResult resolved = resolve_under_root(root, requested);
 
-    // ------------------------------------------------------------------
-    // TODO 16. Собрать ответ через list_directory(). Форма:
-    //   {
-    //     "path": "/docs",
-    //     "entries": [
-    //       {"name": "guide.md", "type": "file"},
-    //       {"name": "nested",   "type": "dir"}
-    //     ]
-    //   }
-    //   Отдавай path тот, что запросил клиент (логический, от корня), а НЕ
-    //   абсолютный путь внутри контейнера — иначе утечёт внутренняя ФС.
-    // ------------------------------------------------------------------
+    if (resolved.status != ResolveStatus::Ok) {
+        send_error(res, http_status_for(resolved.status), resolved.message);
+        return;
+    }
 
-    (void)root;
-    (void)req;
-    send_error(res, 501, "/list is not implemented yet");
+    std::error_code ec;
+    if(!fs::is_directory(resolved.absolute, ec)) {
+        send_error(res, 400, "not a directory");
+        return;
+    }
+
+
+    json entries = json::array();
+
+    for (const DirEntry& e : list_directory(resolved.absolute)) {
+        entries.push_back({{"name", e.name}, {"type", e.type}});
+    }
+
+    send_json(res, json{{"path", requested}, {"entries", entries}});
 }
 
 void handle_file(const fs::path& root, const httplib::Request& req, httplib::Response& res) {
-    // ------------------------------------------------------------------
-    // TODO 17. Те же шаги, что в handle_list: параметр -> resolve -> проверка.
-    //   Здесь проверка обратная: это должен быть обычный файл
-    //   (fs::is_regular_file). Директория -> 400.
-    // ------------------------------------------------------------------
+    
+    if(!req.has_param("path")) {
+        send_error(res, 400, "missing required parameter: path");
+        return;
+    }
 
-    // ------------------------------------------------------------------
-    // TODO 18. Ответ по describe_file():
-    //   {
-    //     "path": "/docs/guide.md",
-    //     "size": 1234,
-    //     "created": "2026-08-14T09:30:00Z",
-    //     "modified": "2026-08-14T10:15:42Z",
-    //     "sha256": "e3b0c442..."
-    //   }
-    //   size отдавай числом, а не строкой.
-    // ------------------------------------------------------------------
+    std::string requested = req.get_param_value("path");
 
-    (void)root;
-    (void)req;
-    send_error(res, 501, "/file is not implemented yet");
+    const ResolveResult resolved = resolve_under_root(root, requested);
+
+    if (resolved.status != ResolveStatus::Ok) {
+        send_error(res, http_status_for(resolved.status), resolved.message);
+        return;
+    }
+    
+    std::error_code ec;
+    if (!fs::is_regular_file(resolved.absolute, ec)) {
+        send_error(res, 400, "not a file");
+        return;
+    }
+    
+
+    FileInfo f_info = describe_file(resolved.absolute);
+
+    send_json(res, json{
+        {"path", requested},
+        {"size", f_info.size},
+        {"created", f_info.created},
+        {"modified", f_info.modified},
+        {"sha256", f_info.sha256}
+    });
 }
 
 }  // namespace
