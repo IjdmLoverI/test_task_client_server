@@ -20,8 +20,8 @@ images — no local compiler or interpreter is needed.
 Clone the repository and enter it:
 
 ```bash
-git clone https://github.com/IjdmLoverI/test_task_klient_server.git
-cd test_task_klient_server
+git clone https://github.com/IjdmLoverI/test_task_client_server.git
+cd test_task_client_server
 ```
 
 Start the server:
