@@ -10,11 +10,19 @@ Both run in Docker and are started together with Docker Compose.
 ## Requirements
 
 - Docker with Compose v2
+- git, to obtain the sources
 
 Nothing else. The C++ toolchain, CMake, OpenSSL and Python all live inside the
 images — no local compiler or interpreter is needed.
 
 ## Quick start
+
+Clone the repository and enter it:
+
+```bash
+git clone https://github.com/IjdmLoverI/test_task_klient_server.git
+cd test_task_klient_server
+```
 
 Start the server:
 
